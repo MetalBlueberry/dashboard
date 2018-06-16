@@ -39,13 +39,27 @@ func WithAuth(fn http.Handler) http.Handler {
 		}
 
 		if value, ok := session.Values["auth"].(bool); !(value && ok) {
+			loginTemplate, err := store.New(r, "LoginTemplate")
+			if err != nil {
+				log.Println(err)
+			} else {
+				log.Print("Setting login template data")
+				loginTemplate.AddFlash(LoginTemplate{Msg: "Unauthorized"})
+				loginTemplate.Values["data"] = LoginTemplate{Msg: "Unauthorized"}
+				err = loginTemplate.Save(r, w)
+				if err != nil {
+					log.Println(err)
+				}
+				log.Print(w.Header())
+			}
 
-			//http.Redirect(w, r, "/login.html", http.StatusFound)
-			w.Write([]byte(`
+			http.Redirect(w, r, "/login/login.html", http.StatusFound)
+			/*w.Write([]byte(`
 			<script>
 			alert('Please login')
 			window.location='/login.html'
 			</script>`))
+			*/
 
 			return
 		}
@@ -141,7 +155,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 	} else {
 		// fmt.Fprint(w, "ERROR")
-		http.Redirect(w, r, "/login.html", http.StatusFound)
+		http.Redirect(w, r, "/login/login.html", http.StatusFound)
 	}
 }
 
@@ -152,5 +166,18 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	session.Options.MaxAge = -1
 	session.Save(r, w)
-	http.Redirect(w, r, "/login.html", http.StatusFound)
+
+	loginTemplate, err := store.New(r, "LoginTemplate")
+	if err != nil {
+		log.Println(err)
+	} else {
+		loginTemplate.AddFlash(LoginTemplate{Msg: "Logout successfully"})
+		err = loginTemplate.Save(r, w)
+		if err != nil {
+			log.Println(err)
+		}
+		log.Print(w.Header())
+	}
+
+	http.Redirect(w, r, "/login/login.html", http.StatusFound)
 }

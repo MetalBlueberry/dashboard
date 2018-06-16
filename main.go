@@ -25,12 +25,17 @@ func main() {
 		Methods("GET")
 
 	router.
-		Handle("/login.html", http.FileServer(http.Dir("page/open/"))).
+		PathPrefix("/login/").
+		Handler(app.TemplateServer(http.Dir("page/"))).
 		Methods("GET")
 
 	router.
+		PathPrefix("/static/").
+		Handler(http.FileServer(http.Dir("page/"))).
+		Methods("GET")
+	router.
 		PathPrefix("/").
-		Handler(app.WithAuth(http.FileServer(http.Dir("page/")))).
+		Handler(app.WithAuth(app.TemplateServer(http.Dir("page/")))).
 		Methods("GET")
 
 	loggedRouter := handlers.LoggingHandler(os.Stdout, router)

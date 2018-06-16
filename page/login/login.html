@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/../static/login/login.css">
+
+</head>
+
+
+<body class="text-center" data-gr-c-s-loaded="true">
+    <!--             <form class="form-signin">
+                  <img class="mb-4" src="https://getbootstrap.com/assets/brand/bootstrap-solid.svg" alt="" width="72" height="72">
+                  <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+                  <label for="inputEmail" class="sr-only">Email address</label>
+                  <input id="inputEmail" class="form-control" placeholder="Email address" required="" autofocus="" type="email">
+                  <label for="inputPassword" class="sr-only">Password</label>
+                  <input id="inputPassword" class="form-control" placeholder="Password" required="" type="password">
+                  <div class="checkbox mb-3">
+                    <label>
+                      <input value="remember-me" type="checkbox"> Remember me
+                    </label>
+                  </div>
+                  <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+                  <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+                </form> -->
+
+    <br>
+    <form class="form-signin" action="../api/login" method="POST" enctype="multipart/form-data">
+        <h2 class="h3 mb-3 font-weight-normal">Simple Report</h2>
+        {{if .Msg}}
+        <label class="h3 mb-3 font-weight-normal"> {{.Msg}}</label>
+        {{end}}
+        <label class="sr-only">
+            Username
+        </label>
+        <input type="text" class="form-control" placeholder="Username" name="username" required>
+        <br>
+        <label class="sr-only">
+            Password
+        </label>
+        <input type="password" class="form-control" placeholder="Password" name="password" required>
+        <br>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Login</button>
+        <br>
+    </form>
+    <!-- <br>
+    <h2>Register</h2>
+    <form action="api/register" method="POST" enctype="multipart/form-data">
+        <label>
+            <b>Username</b>
+        </label>
+        <input type="text" placeholder="Enter Username" name="username" required>
+    <br>
+        <label>
+            <b>Password</b>
+        </label>
+        <input type="password" placeholder="Enter Password" name="password" required>
+        <input type="password" placeholder="Confirm password" name="cpassword" required>
+    <br>
+        <button type="submit">Login</button>
+    <br>
+    </form> -->
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+        crossorigin="anonymous"></script>
+    <script src="../static/js/bootstrap.min.js"></script>
+</body>
+
+</html>

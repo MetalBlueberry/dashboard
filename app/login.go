@@ -10,6 +10,17 @@ import (
 	"strings"
 )
 
+var Users map[string]User
+
+type User struct {
+	Password string
+	Blocked  bool
+}
+
+func (u User) checkPassword(password string) bool {
+	return u.Password == password
+}
+
 var store = sessions.NewCookieStore([]byte("fkdiruasprjrkduufjasdlrntnasf"))
 
 func WithAuth(fn http.Handler) http.Handler {
@@ -27,7 +38,7 @@ func WithAuth(fn http.Handler) http.Handler {
 			if userName, ok := userNameValue.(string); !ok {
 				session.Values["auth"] = false
 			} else {
-				if userData, exist := users[userName]; !exist || userData.Blocked {
+				if userData, exist := Users[userName]; !exist || userData.Blocked {
 					session.Values["auth"] = false
 				}
 			}
@@ -44,13 +55,11 @@ func WithAuth(fn http.Handler) http.Handler {
 				log.Println(err)
 			} else {
 				log.Print("Setting login template data")
-				loginTemplate.AddFlash(LoginTemplate{Msg: "Unauthorized"})
-				loginTemplate.Values["data"] = LoginTemplate{Msg: "Unauthorized"}
+				loginTemplate.AddFlash(LoginTemplate{Msg: "You must login first"})
 				err = loginTemplate.Save(r, w)
 				if err != nil {
 					log.Println(err)
 				}
-				log.Print(w.Header())
 			}
 
 			http.Redirect(w, r, "/login/login.html", http.StatusFound)
@@ -67,17 +76,6 @@ func WithAuth(fn http.Handler) http.Handler {
 		return
 	})
 }
-
-type User struct {
-	Password string
-	Blocked  bool
-}
-
-func (u User) checkPassword(password string) bool {
-	return u.Password == password
-}
-
-var users map[string]User
 
 func init() {
 	ReloadUsers()
@@ -120,7 +118,7 @@ func ReloadUsers() {
 	if len(file) == 0 {
 		return
 	}
-	err = json.Unmarshal(file, &users)
+	err = json.Unmarshal(file, &Users)
 	if err != nil {
 		log.Print(err)
 	}
@@ -129,7 +127,7 @@ func ReloadUsers() {
 
 func doLogin(user, password string) bool {
 	ReloadUsers()
-	if data, exist := users[strings.ToLower(user)]; exist {
+	if data, exist := Users[strings.ToLower(user)]; exist {
 		if data.checkPassword(password) {
 			return true
 		}
@@ -146,7 +144,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if doLogin(r.FormValue("username"), r.FormValue("password")) {
-		// fmt.Fprint(w, "OK")
 		session.Values["auth"] = true
 		session.Values["user"] = r.FormValue("username")
 		session.Save(r, w)
@@ -154,7 +151,19 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		log.Print(session.Values)
 		http.Redirect(w, r, "/", http.StatusFound)
 	} else {
-		// fmt.Fprint(w, "ERROR")
+		loginTemplate, err := store.New(r, "LoginTemplate")
+		if err != nil {
+			log.Println(err)
+		} else {
+			log.Print("Setting login template data")
+			loginTemplate.AddFlash(LoginTemplate{Msg: "User or password incorrect", Type: "alert-warning"})
+			err = loginTemplate.Save(r, w)
+			if err != nil {
+				log.Println(err)
+			}
+			log.Print(w.Header())
+		}
+
 		http.Redirect(w, r, "/login/login.html", http.StatusFound)
 	}
 }

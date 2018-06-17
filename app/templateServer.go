@@ -9,32 +9,37 @@ import (
 )
 
 type LoginTemplate struct {
-	Msg string
+	Msg  string
+	Type string
 }
 
-var templates *template.Template
+type IndexTemplate struct {
+	Reports map[string]string
+}
+
+var Templates *template.Template
 
 func init() {
 	var err error
-	templates, err = template.ParseGlob("page/**/*.html")
+	Templates, err = template.ParseGlob("page/**/*.html")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	templates.ParseGlob("page/*.html")
+	Templates.ParseGlob("page/*.html")
 
 	log.Print("Defined Templates")
-	log.Print(templates.DefinedTemplates())
+	log.Print(Templates.DefinedTemplates())
 
 	gob.Register(LoginTemplate{})
 
 }
 
-func TemplateServer(dir http.Dir) http.Handler {
+func TemplateServer() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Print(r.URL.Path)
 		if len(r.URL.Path) == 1 {
-			err := templates.ExecuteTemplate(w, "index.html", nil)
+			err := Templates.ExecuteTemplate(w, "index.html", nil)
 			if err != nil {
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 			}
@@ -57,11 +62,10 @@ func TemplateServer(dir http.Dir) http.Handler {
 				}
 			}
 
-			err := templates.ExecuteTemplate(w, file, data)
+			err := Templates.ExecuteTemplate(w, file, data)
 			if err != nil {
 				http.NotFound(w, r)
 			}
 		}
 	})
-
 }

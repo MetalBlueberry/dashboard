@@ -34,7 +34,7 @@
     <form class="form-signin" action="../api/login" method="POST" enctype="multipart/form-data">
         <h2 class="h3 mb-3 font-weight-normal">Simple Report</h2>
         {{if .Msg}}
-        <label class="h3 mb-3 font-weight-normal"> {{.Msg}}</label>
+        <label class="alert {{if .Type}} {{.Type}}{{else}} alert-info {{end}}"> {{.Msg}}</label>
         {{end}}
         <label class="sr-only">
             Username

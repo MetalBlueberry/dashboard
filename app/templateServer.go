@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,25 +16,84 @@ type LoginTemplate struct {
 }
 
 type IndexTemplate struct {
-	Reports map[string]string
+	CsvFiles []string
 }
 
 var Templates *template.Template
 
 func init() {
+
+	ReloadTemplates()
+	gob.Register(LoginTemplate{})
+	go MonitorTemplates()
+
+}
+func ReloadTemplates() {
 	var err error
 	Templates, err = template.ParseGlob("page/**/*.html")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	Templates.ParseGlob("page/*.html")
+	_, err = Templates.ParseGlob("page/*.html")
+	if err != nil {
+		log.Panic(err)
+	}
 
 	log.Print("Defined Templates")
 	log.Print(Templates.DefinedTemplates())
+}
 
-	gob.Register(LoginTemplate{})
+func MonitorTemplates() {
 
+	//DIRTY IMPLEMENTATION, only 2 level of recursion, I need a better idea :)
+	files2, err := filepath.Glob("./*/*/*.html")
+	if err != nil {
+		log.Print(err)
+		log.Print("Cant find html files, STOP monitor Templates for changes")
+		return
+	}
+
+	files1, err := filepath.Glob("./*/*.html")
+	if err != nil {
+		log.Print(err)
+		log.Print("Cant find html files, STOP monitor Templates for changes")
+		return
+	}
+
+	// inotifywait -mq -e modify users.json
+	cmd := exec.Command("inotifywait", "-mq", "-e", "modify")
+
+	cmd.Args = append(cmd.Args, files1...)
+	cmd.Args = append(cmd.Args, files2...)
+
+	log.Print(cmd.Args)
+
+	reader, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Print(err)
+		log.Print("Cant Read stdout, STOP monitor Templates for changes")
+		return
+	}
+
+	buff := make([]byte, 50)
+
+	err = cmd.Start()
+	if err != nil {
+		log.Print(err)
+		log.Print("cant start, STOP monitor Templates for changes")
+		return
+	}
+
+	for {
+		_, err := reader.Read(buff)
+		if err != nil {
+			log.Print(err)
+			log.Print("Error reading, STOP monitor Templates for changes")
+			return
+		}
+		ReloadTemplates()
+	}
 }
 
 func TemplateServer() http.Handler {
@@ -59,6 +120,15 @@ func TemplateServer() http.Handler {
 					}
 					log.Printf("Login template data loaded %+v", data)
 					loginTemplate.Save(r, w)
+				}
+			case "index.html":
+				csvs, err := filepath.Glob("page/reports/table/*.csv")
+				if err != nil {
+					http.NotFound(w, r)
+					return
+				}
+				data = IndexTemplate{
+					CsvFiles: csvs,
 				}
 			}
 

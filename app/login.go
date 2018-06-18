@@ -1,11 +1,14 @@
 package app
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/sessions"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -18,10 +21,60 @@ type User struct {
 }
 
 func (u User) checkPassword(password string) bool {
-	return u.Password == password
+	SERVER_SECRET, err := os.LookupEnv("SERVER_SECRET")
+	if !err {
+		panic("SERVER-SECRET secret is not defined")
+	}
+
+	hash := sha256.Sum256([]byte(password + SERVER_SECRET))
+	log.Printf("hash %x", hash)
+	return fmt.Sprintf("%x", hash) == strings.ToLower(u.Password)
 }
 
-var store = sessions.NewCookieStore([]byte("fkdiruasprjrkduufjasdlrntnasf"))
+var store sessions.Store
+var SERVER_SECRET string
+
+func init() {
+	SERVER_SECRET, err := os.LookupEnv("SERVER_SECRET")
+	if !err {
+		panic("SERVER-SECRET secret is not defined")
+	}
+
+	store = sessions.NewCookieStore([]byte(SERVER_SECRET))
+	ReloadUsers()
+	go MonitorUsersFile()
+}
+
+func MonitorUsersFile() {
+	// inotifywait -mq -e modify users.json
+	cmd := exec.Command("inotifywait", "-mq", "-e", "modify", "users.json")
+
+	reader, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Print(err)
+		log.Print("STOP user.json monitor for changes")
+		return
+	}
+
+	buff := make([]byte, 20)
+
+	err = cmd.Start()
+	if err != nil {
+		log.Print(err)
+		log.Print("STOP user.json monitor for changes")
+		return
+	}
+
+	for {
+		_, err := reader.Read(buff)
+		if err != nil {
+			log.Print(err)
+			log.Print("STOP user.json monitor for changes")
+			return
+		}
+		ReloadUsers()
+	}
+}
 
 func WithAuth(fn http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -75,39 +128,6 @@ func WithAuth(fn http.Handler) http.Handler {
 		fn.ServeHTTP(w, r)
 		return
 	})
-}
-
-func init() {
-	ReloadUsers()
-
-	go func() {
-		// inotifywait -mq -e modify users.json
-		cmd := exec.Command("inotifywait", "-mq", "-e", "modify", "users.json")
-
-		reader, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Print(err)
-			log.Print("STOP user.json monitor for changes")
-		}
-
-		buff := make([]byte, 20)
-
-		err = cmd.Start()
-		if err != nil {
-			log.Print(err)
-			log.Print("STOP user.json monitor for changes")
-		}
-
-		for {
-			_, err := reader.Read(buff)
-			if err != nil {
-				log.Print(err)
-				log.Print("STOP user.json monitor for changes")
-			}
-			ReloadUsers()
-		}
-	}()
-
 }
 
 func ReloadUsers() {

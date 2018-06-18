@@ -44,7 +44,6 @@ func ReloadReports() {
 		}
 
 	}
-
 	log.Printf("Reloaded reports.json")
 }
 
